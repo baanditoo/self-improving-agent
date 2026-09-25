@@ -10,6 +10,7 @@ from pathlib import Path
 
 from .agent import build_agent
 from .learner import load_weights
+from .live_hitrate import fetch_stonk_hit_rate
 from .replay import build_tape, run_replay
 
 
@@ -51,6 +52,7 @@ def main(argv: list[str] | None = None) -> int:
     learn = sub.add_parser("learn", help="Run one learning pass")
     learn.add_argument("--hours", type=int, default=4)
     sub.add_parser("replay", help="Run the seeded paper tape and print the 2x hit ratio")
+    sub.add_parser("hitrate", help="Measure 2x prints on older StonkFun launches")
     args = parser.parse_args(argv)
 
     if args.cmd == "paper":
@@ -74,6 +76,10 @@ def main(argv: list[str] | None = None) -> int:
         stats = asyncio.run(run_replay(replay_agent, build_tape()))
         print(json.dumps(stats, indent=2))
         return 0 if stats["hit_ratio"] >= 0.70 and stats["resolved"] >= 30 else 1
+    if args.cmd == "hitrate":
+        measured = fetch_stonk_hit_rate()
+        print(json.dumps(measured, indent=2))
+        return 0
     return 1
 
 

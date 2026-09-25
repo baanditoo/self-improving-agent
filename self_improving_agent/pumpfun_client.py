@@ -90,7 +90,8 @@ def parse_coin(payload: dict[str, Any]) -> dict[str, Any]:
         "real_sol_reserves": _num(payload.get("real_sol_reserves")),
         "real_token_reserves": _num(payload.get("real_token_reserves")),
         "market_cap_sol": _num(payload.get("market_cap")),
-        "usd_market_cap": _num(payload.get("usd_market_cap")),
+        "usd_market_cap": _num(payload.get("usd_market_cap")) or _num(payload.get("market_cap_usd")),
+        "ath_market_cap": _num(payload.get("ath_market_cap")),
         "total_supply": _num(payload.get("total_supply")),
         "reply_count": payload.get("reply_count"),
         "last_reply": payload.get("last_reply"),
@@ -147,7 +148,7 @@ class PumpFunClient:
     async def _get(self, path: str, params: dict[str, Any] | None = None) -> Any:
         await self.bucket.acquire()
         response = await self._client.get(f"{self.base_url}{path}", params=params, headers=self._headers())
-        if response.status_code == 401 and not self.bearer:
+        if response.status_code in {401, 404} and path != "/coins":
             return None
         response.raise_for_status()
         return response.json()
@@ -161,12 +162,15 @@ class PumpFunClient:
         return response.json()
 
     async def latest(self) -> list[dict[str, Any]]:
-        payload = await self._get("/coins/latest")
+        payload = await self._get(
+            "/coins",
+            {"offset": 0, "limit": 30, "sort": "created_timestamp", "order": "DESC", "includeNsfw": "false"},
+        )
         return [parse_coin(row) for row in _as_list(payload)]
 
     async def featured(self, window: str | None = None) -> list[dict[str, Any]]:
-        path = f"/coins/featured/{window}" if window else "/coins/featured"
-        payload = await self._get(path)
+        path = f"/coins/featured/{window}" if window else "/coins/currently-live"
+        payload = await self._get(path, {"offset": 0, "limit": 20, "includeNsfw": "false"})
         return [parse_coin(row) for row in _as_list(payload)]
 
     async def search(self, term: str, limit: int = 20) -> list[dict[str, Any]]:

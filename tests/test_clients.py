@@ -27,6 +27,28 @@ def test_pump_and_stonk_parse_fixtures_offline():
     assert stonk["transfer_fee_bps"] == 0
     assert stonk["flywheel_active"] is False
     assert stonk["price_usd"] == 0.04
+    nested = parse_token(
+        {
+            "mint": "NestedMint",
+            "symbol": "NEST",
+            "launchpad": "launchlab",
+            "status": "new",
+            "mode": "standard",
+            "quote": {"symbol": "SPYx", "mint": "SpyMint", "category": "xstock"},
+            "market": {
+                "priceUsd": 0.02,
+                "marketCapUsd": 9000,
+                "volume24hUsd": 1200,
+                "liquidityUsd": 4000,
+                "peakMarketCapUsd": 11000,
+            },
+            "transferFee": {"bps": 0},
+        }
+    )
+    assert nested["quote_symbol"] == "SPYx"
+    assert nested["price_usd"] == 0.02
+    assert nested["liquidity_usd"] == 4000
+    assert nested["peak_market_cap_usd"] == 11000
 
 
 def test_gmgn_normalizers_use_documented_fields():
