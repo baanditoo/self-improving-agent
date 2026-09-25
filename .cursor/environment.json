@@ -1,0 +1,17 @@
+{
+  "name": "self-improving-agent",
+  "user": "ubuntu",
+  "install": "bash scripts/cloud-agent-install.sh",
+  "terminals": [
+    {
+      "name": "web",
+      "command": "bash scripts/run-dev-server.sh"
+    }
+  ],
+  "ports": [
+    {
+      "name": "web",
+      "port": 5000
+    }
+  ]
+}
