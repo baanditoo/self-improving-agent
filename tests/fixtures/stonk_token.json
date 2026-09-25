@@ -1,0 +1,20 @@
+{
+  "data": {
+    "mint": "StonkMint11111111111111111111111111111111111",
+    "name": "Desk Chip",
+    "symbol": "DSK",
+    "marketCap": 180000,
+    "volume": 42000,
+    "priceUsd": 0.04,
+    "liquidityUsd": 25000,
+    "quoteMint": "XsoCS1TfEyfFhfvj8EtZ528L3CaKBDBRqRapnBbDF2W",
+    "quoteSymbol": "NVDAx",
+    "quoteCategory": "xstock",
+    "launchpad": "launchlab",
+    "status": "new",
+    "mode": "standard",
+    "transferFee": {"bps": 0},
+    "flywheel": {"active": false},
+    "createdAt": 1700000000
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "mint": "PumpGoodMint111111111111111111111111111111111",
+  "name": "Curve Cat",
+  "symbol": "CCAT",
+  "description": "fresh curve",
+  "creator": "CreatorWallet111111111111111111111111111111",
+  "created_timestamp": 1700000000000,
+  "complete": false,
+  "virtual_sol_reserves": 62000000000,
+  "virtual_token_reserves": 800000000000000,
+  "real_sol_reserves": 32000000000,
+  "real_token_reserves": 600000000000000,
+  "total_supply": 1000000000000000,
+  "market_cap": 40.5,
+  "usd_market_cap": 6075,
+  "reply_count": 3,
+  "nsfw": false,
+  "raydium_pool": null
+}

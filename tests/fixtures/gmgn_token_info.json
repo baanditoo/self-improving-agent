@@ -1,0 +1,36 @@
+{
+  "address": "GmgnMint111111111111111111111111111111111111",
+  "symbol": "GM",
+  "name": "Gmgn Sample",
+  "decimals": 6,
+  "total_supply": 1000000000,
+  "circulating_supply": 1000000000,
+  "liquidity": 30000,
+  "holder_count": 140,
+  "creation_timestamp": 1700000000,
+  "launchpad": "moonshot",
+  "launchpad_status": 2,
+  "launchpad_progress": 1,
+  "ath_price": 0.00004,
+  "price": {
+    "price": "0.00003",
+    "price_1h": "0.000025",
+    "buys_5m": 40,
+    "sells_5m": 22,
+    "volume_5m": 12000
+  },
+  "pool": {
+    "pool_address": "Pool111",
+    "quote_address": "So11111111111111111111111111111111111111112",
+    "quote_symbol": "SOL",
+    "liquidity": 30000
+  },
+  "dev": {"creator_address": "Dev111", "creator_token_status": "hold", "top_10_holder_rate": 0.22},
+  "stat": {
+    "holder_count": 140,
+    "top_10_holder_rate": 0.22,
+    "top_bundler_trader_percentage": 0.04,
+    "creator_hold_rate": 0.02
+  },
+  "wallet_tags_stat": {"smart_wallets": 4, "sniper_wallets": 3, "bundler_wallets": 2}
+}
