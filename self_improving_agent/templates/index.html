@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Self-Improving Agent</title>
+    <style>
+      :root {
+        --bg: #0f172a;
+        --panel: #1e293b;
+        --panel-2: #273449;
+        --text: #e2e8f0;
+        --muted: #94a3b8;
+        --accent: #38bdf8;
+        --accent-2: #22c55e;
+        --border: #334155;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+        background: radial-gradient(1200px 600px at 70% -10%, #1d3a5f 0%, var(--bg) 55%);
+        color: var(--text);
+        min-height: 100vh;
+      }
+      .wrap { max-width: 860px; margin: 0 auto; padding: 48px 24px 72px; }
+      header h1 {
+        font-size: 2rem;
+        margin: 0 0 6px;
+        letter-spacing: -0.02em;
+      }
+      header p { color: var(--muted); margin: 0 0 28px; }
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 24px;
+        box-shadow: 0 20px 40px -24px rgba(0, 0, 0, 0.6);
+      }
+      label { display: block; font-size: 0.85rem; color: var(--muted); margin-bottom: 6px; }
+      .row { display: flex; gap: 16px; flex-wrap: wrap; }
+      .row > div { flex: 1; min-width: 180px; }
+      input[type="text"], input[type="number"] {
+        width: 100%;
+        padding: 12px 14px;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        background: var(--panel-2);
+        color: var(--text);
+        font-size: 1rem;
+      }
+      input:focus { outline: 2px solid var(--accent); border-color: transparent; }
+      button {
+        margin-top: 20px;
+        width: 100%;
+        padding: 13px 18px;
+        border: none;
+        border-radius: 10px;
+        background: linear-gradient(135deg, var(--accent), #6366f1);
+        color: #05121f;
+        font-weight: 700;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: transform 0.05s ease, filter 0.15s ease;
+      }
+      button:hover { filter: brightness(1.08); }
+      button:active { transform: translateY(1px); }
+      button:disabled { opacity: 0.6; cursor: not-allowed; }
+      .status { margin-top: 22px; }
+      .candidate {
+        font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+        font-size: 1.5rem;
+        letter-spacing: 2px;
+        background: var(--panel-2);
+        border-radius: 12px;
+        padding: 18px 16px;
+        min-height: 28px;
+        word-break: break-all;
+        border: 1px solid var(--border);
+      }
+      .candidate .hit { color: var(--accent-2); }
+      .candidate .miss { color: #f87171; opacity: 0.85; }
+      .meta { display: flex; justify-content: space-between; margin: 16px 2px 8px; color: var(--muted); font-size: 0.9rem; }
+      .bar { height: 12px; border-radius: 999px; background: var(--panel-2); overflow: hidden; border: 1px solid var(--border); }
+      .bar > span { display: block; height: 100%; width: 0%; background: linear-gradient(90deg, var(--accent), var(--accent-2)); transition: width 0.12s ease; }
+      .solved { color: var(--accent-2); font-weight: 700; }
+      .error { color: #f87171; margin-top: 16px; }
+      footer { margin-top: 32px; color: var(--muted); font-size: 0.8rem; text-align: center; }
+      code { background: var(--panel-2); padding: 2px 6px; border-radius: 6px; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <h1>🧬 Self-Improving Agent</h1>
+        <p>
+          Watch an evolutionary agent start from random noise and iteratively
+          improve itself until it reproduces your target phrase.
+        </p>
+      </header>
+
+      <div class="card">
+        <div class="row">
+          <div style="flex: 2 1 320px;">
+            <label for="target">Target phrase</label>
+            <input id="target" type="text" value="Hello, self-improving world!" maxlength="120" />
+          </div>
+          <div>
+            <label for="rate">Mutation rate</label>
+            <input id="rate" type="number" value="0.12" step="0.01" min="0.01" max="1" />
+          </div>
+          <div>
+            <label for="seed">Seed (optional)</label>
+            <input id="seed" type="number" value="42" />
+          </div>
+        </div>
+        <button id="run">Run agent</button>
+
+        <div class="status" id="status" hidden>
+          <div class="candidate" id="candidate"></div>
+          <div class="meta">
+            <span id="genLabel">Generation 0</span>
+            <span id="fitLabel">0% match</span>
+          </div>
+          <div class="bar"><span id="barFill"></span></div>
+          <div id="solvedMsg"></div>
+        </div>
+        <div class="error" id="error" hidden></div>
+      </div>
+
+      <footer>
+        Powered by a mutation-and-selection loop in
+        <code>self_improving_agent/agent.py</code>.
+      </footer>
+    </div>
+
+    <script>
+      const runBtn = document.getElementById("run");
+      const statusEl = document.getElementById("status");
+      const candidateEl = document.getElementById("candidate");
+      const genLabel = document.getElementById("genLabel");
+      const fitLabel = document.getElementById("fitLabel");
+      const barFill = document.getElementById("barFill");
+      const solvedMsg = document.getElementById("solvedMsg");
+      const errorEl = document.getElementById("error");
+
+      function renderCandidate(candidate, target) {
+        let html = "";
+        for (let i = 0; i < candidate.length; i++) {
+          const cls = candidate[i] === target[i] ? "hit" : "miss";
+          const ch = candidate[i] === " " ? "&nbsp;" : escapeHtml(candidate[i]);
+          html += `<span class="${cls}">${ch}</span>`;
+        }
+        candidateEl.innerHTML = html;
+      }
+
+      function escapeHtml(s) {
+        return s.replace(/[&<>"']/g, (c) => ({
+          "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+        }[c]));
+      }
+
+      async function run() {
+        const target = document.getElementById("target").value;
+        const mutation_rate = parseFloat(document.getElementById("rate").value);
+        const seedRaw = document.getElementById("seed").value;
+        const seed = seedRaw === "" ? null : parseInt(seedRaw, 10);
+
+        errorEl.hidden = true;
+        solvedMsg.textContent = "";
+        runBtn.disabled = true;
+        runBtn.textContent = "Improving...";
+
+        try {
+          const res = await fetch("/api/improve", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ target, mutation_rate, seed }),
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || "Request failed");
+
+          statusEl.hidden = false;
+          const generations = data.generations;
+          let i = 0;
+          const stepDelay = Math.max(20, Math.min(220, 3000 / generations.length));
+          const timer = setInterval(() => {
+            const g = generations[i];
+            renderCandidate(g.candidate, data.target);
+            genLabel.textContent = `Generation ${g.index}`;
+            const pct = Math.round(g.fitness * 100);
+            fitLabel.textContent = `${pct}% match (${g.matches}/${g.total})`;
+            barFill.style.width = pct + "%";
+            i++;
+            if (i >= generations.length) {
+              clearInterval(timer);
+              runBtn.disabled = false;
+              runBtn.textContent = "Run agent";
+              if (data.solved) {
+                solvedMsg.innerHTML = `<p class="solved">✅ Solved in ${data.steps} improvement steps (final generation ${g.index}).</p>`;
+              } else {
+                solvedMsg.innerHTML = `<p>Best effort after ${g.index} generations.</p>`;
+              }
+            }
+          }, stepDelay);
+        } catch (err) {
+          errorEl.textContent = err.message;
+          errorEl.hidden = false;
+          runBtn.disabled = false;
+          runBtn.textContent = "Run agent";
+        }
+      }
+
+      runBtn.addEventListener("click", run);
+    </script>
+  </body>
+</html>
