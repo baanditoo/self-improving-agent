@@ -37,8 +37,8 @@ class Settings(BaseSettings):
     trade_size_sol: float = 0.10
     trade_size_min_sol: float = 0.05
     trade_size_max_sol: float = 0.15
-    max_positions: int = 4
-    entry_threshold: float = 72
+    max_positions: int = 50
+    entry_threshold: float = 64
     initial_scale_mode: str = "cost_basis"
     take_initial_mult: float = 2.0
     stop_loss_pct: float = 0.22
@@ -48,6 +48,8 @@ class Settings(BaseSettings):
     min_liq_usd: float = 8000
     max_top10_pct: float = 0.40
     paper_equity_sol: float = 10
+    paper_equity_usd: float = 500
+    max_buy_usd: float = 10
 
     pumpfun_base_url: str = "https://frontend-api-v3.pump.fun"
     pumpfun_bearer: str = ""
@@ -117,6 +119,15 @@ class Settings(BaseSettings):
 
     def clamped_trade_size(self) -> float:
         return min(self.trade_size_max_sol, max(self.trade_size_min_sol, self.trade_size_sol))
+
+    def ticket_usd(self) -> tuple[float, float]:
+        """Cash outlay per coin is max_buy_usd, fee included. Returns notional, fee."""
+        fee_rate = max(self.paper_fee_pct, 0.0)
+        notional = self.max_buy_usd / (1 + fee_rate)
+        return notional, self.max_buy_usd - notional
+
+    def starting_cash_usd(self) -> float:
+        return float(self.paper_equity_usd)
 
     def trading_mode(self) -> str:
         return "LIVE" if self.live_trading else "PAPER"

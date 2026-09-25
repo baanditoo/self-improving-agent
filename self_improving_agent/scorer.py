@@ -77,7 +77,7 @@ def score_snapshot(snapshot: TokenSnapshot, settings: Settings, weights: dict[st
     if settings.require_renounced_mint and snapshot.renounced_mint is False:
         flags.append("mint_not_renounced")
     liq = snapshot.liquidity_usd or 0
-    size_usd = settings.clamped_trade_size() * snapshot.sol_usd
+    size_usd = settings.max_buy_usd
     if liq < settings.min_liq_usd or (liq > 0 and size_usd > liq * 0.05):
         flags.append("thin_liquidity")
     if liq <= 0:

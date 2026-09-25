@@ -79,8 +79,13 @@ class PaperBroker:
         if tokens <= 0 or not snapshot.price_usd:
             return None
         now = time.time()
-        fee = size_sol * snapshot.sol_usd * self.settings.paper_fee_pct
-        cost_usd = size_sol * snapshot.sol_usd
+        sol_usd = snapshot.sol_usd or self.settings.sol_price_usd
+        notional_cap, _ = self.settings.ticket_usd()
+        cost_usd = min(size_sol * sol_usd, notional_cap)
+        size_sol = cost_usd / sol_usd
+        fee = cost_usd * self.settings.paper_fee_pct
+        if cost_usd + fee > self.settings.max_buy_usd + 1e-6:
+            return None
         # Fill slightly worse than the mark.
         fill_price = cost_usd / tokens
         order_id = client_order_id(snapshot.mint, "buy", "entry", now)

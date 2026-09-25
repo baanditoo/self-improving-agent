@@ -22,6 +22,7 @@ def approve_entry(
     open_positions: list[Position],
     equity_start_usd: float,
     equity_now_usd: float,
+    cash_usd: float,
 ) -> tuple[bool, str, float]:
     if kill_switch_active(equity_start_usd, equity_now_usd, settings):
         return False, "kill_switch", 0
@@ -31,8 +32,11 @@ def approve_entry(
         return False, "max_positions", 0
     if snapshot.expected_path.value == "skip" or snapshot.score < settings.entry_threshold:
         return False, "score", 0
-    size = settings.clamped_trade_size()
-    if size <= 0:
+    if cash_usd + 1e-9 < settings.max_buy_usd:
+        return False, "cash", 0
+    notional, _fee = settings.ticket_usd()
+    sol_usd = snapshot.sol_usd or settings.sol_price_usd
+    if sol_usd <= 0 or notional <= 0:
         return False, "size", 0
-    # Never add to a loser: caller only proposes fresh entries.
-    return True, "ok", size
+    # Full $10 ticket only. Never add to a loser.
+    return True, "ok", notional / sol_usd

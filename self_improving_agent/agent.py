@@ -61,7 +61,7 @@ class TradingAgent:
 
     def equity_usd(self, positions: list[Position] | None = None) -> float:
         positions = self.positions() if positions is None else positions
-        cash = float(self.storage.get_meta("cash_usd", str(self.settings.paper_equity_sol * self.settings.sol_price_usd)))
+        cash = float(self.storage.get_meta("cash_usd", str(self.settings.starting_cash_usd())))
         unreal = 0.0
         for pos in positions:
             if pos.state.value == "FLAT":
@@ -78,7 +78,7 @@ class TradingAgent:
             self.storage.set_meta("equity_day", day)
             self.storage.set_meta("equity_start_usd", str(equity))
             if self.storage.get_meta("cash_usd") is None:
-                self.storage.set_meta("cash_usd", str(self.settings.paper_equity_sol * self.settings.sol_price_usd))
+                self.storage.set_meta("cash_usd", str(self.settings.starting_cash_usd()))
             return equity
         return float(start)
 
@@ -95,14 +95,15 @@ class TradingAgent:
         discovery = self._ensure_clients()
         book = load_weights(self.settings.data_dir / "weights.json")
         params = book.get("params") or {}
-        if params.get("entry_threshold"):
-            self.settings.entry_threshold = float(params["entry_threshold"])
-        if params.get("trail_giveback_pct"):
-            self.settings.trail_giveback_pct = float(params["trail_giveback_pct"])
-        if params.get("min_liq_usd"):
-            self.settings.min_liq_usd = float(params["min_liq_usd"])
-        if params.get("max_top10_pct"):
-            self.settings.max_top10_pct = float(params["max_top10_pct"])
+        if int(book.get("sample_size") or 0) >= self.settings.min_learn_samples:
+            if params.get("entry_threshold"):
+                self.settings.entry_threshold = float(params["entry_threshold"])
+            if params.get("trail_giveback_pct"):
+                self.settings.trail_giveback_pct = float(params["trail_giveback_pct"])
+            if params.get("min_liq_usd"):
+                self.settings.min_liq_usd = float(params["min_liq_usd"])
+            if params.get("max_top10_pct"):
+                self.settings.max_top10_pct = float(params["max_top10_pct"])
 
         start_equity = self._roll_day(now)
         snapshots = await discovery.collect(now)
@@ -116,7 +117,10 @@ class TradingAgent:
             if decision.rejected or decision.expected_path.value == "skip":
                 remember_skip(self.storage, snapshot, now)
                 continue
-            ok, reason, size = approve_entry(snapshot, self.settings, positions, start_equity, self.equity_usd(positions))
+            cash = float(self.storage.get_meta("cash_usd", str(self.settings.starting_cash_usd())))
+            ok, reason, size = approve_entry(
+                snapshot, self.settings, positions, start_equity, self.equity_usd(positions), cash
+            )
             if not ok:
                 snapshot.reasons.append(reason)
                 remember_skip(self.storage, snapshot, now)
@@ -162,18 +166,43 @@ class TradingAgent:
                 distribution=pos.snapshot.distribution,
             )
             if result.action == "sell_initial":
+                before = pos.realized_usd
                 await broker.sell(pos, result.sell_fraction, "2x initial scale-out")
+                self._credit_cash(pos.realized_usd - before)
                 acted += 1
             elif result.action == "flatten":
+                before = pos.realized_usd
                 await broker.sell(pos, 1.0, result.note or pos.flat_reason or "flatten")
                 tracker.record_closed(pos, now)
-                if pos.realized_usd:
-                    cash = float(self.storage.get_meta("cash_usd", "0"))
-                    self.storage.set_meta("cash_usd", str(cash + pos.realized_usd))
+                self._credit_cash(pos.realized_usd - before)
                 acted += 1
             else:
                 self.storage.save_position(pos.model_dump(mode="json"))
         return acted
+
+    def _credit_cash(self, amount: float) -> None:
+        if amount == 0:
+            return
+        cash = float(self.storage.get_meta("cash_usd", str(self.settings.starting_cash_usd())))
+        self.storage.set_meta("cash_usd", str(cash + amount))
+
+    def cash_usd(self) -> float:
+        return float(self.storage.get_meta("cash_usd", str(self.settings.starting_cash_usd())))
+
+    def hit_ratio(self) -> dict[str, float]:
+        sold = failed = 0
+        for pos in self.positions():
+            if pos.initial_sold:
+                sold += 1
+            elif pos.state.value == "FLAT":
+                failed += 1
+        resolved = sold + failed
+        return {
+            "initials_sold": sold,
+            "failed_2x": failed,
+            "resolved": resolved,
+            "hit_ratio": (sold / resolved) if resolved else 0.0,
+        }
 
     def hourly(self, now: float | None = None) -> str:
         now = now if now is not None else time.time()

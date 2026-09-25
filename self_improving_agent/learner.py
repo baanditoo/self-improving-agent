@@ -110,9 +110,9 @@ def learn(settings: Settings, storage: Storage, hours: int | None = None, now: f
     for event in events:
         multiple = float(event.get("multiple") or 1)
         if event.get("label") in {"RUNNER_CAPTURED", "RUNNER_GAVE_BACK", "FAILED_2X"}:
-            taken_pnl += (multiple - 1) * settings.clamped_trade_size() * settings.sol_price_usd
+            taken_pnl += (multiple - 1) * settings.max_buy_usd
         if event.get("label") == "MISSED_RUNNER":
-            missed_pnl += (multiple - 1) * settings.clamped_trade_size() * settings.sol_price_usd
+            missed_pnl += (multiple - 1) * settings.max_buy_usd
 
     if not tuned and not changes:
         rule = "No parameter change: evidence is weak or the sample is still thin."

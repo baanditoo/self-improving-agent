@@ -48,7 +48,9 @@ python -m self_improving_agent learn --hours 4
 
 The loop discovers every 15–30 seconds, writes an hourly report, and learns every 4 hours. Ctrl+C stops it.
 
-Entry size defaults to 0.05–0.15 SOL. Max concurrent positions default to 4. New entries halt when daily realized plus unrealized drawdown exceeds `MAX_DAILY_DD_PCT` (default 25).
+The paper book starts at `PAPER_EQUITY_USD` (default $500). Each new coin spends at most `MAX_BUY_USD` (default $10), fee included. Slots default to 50, so the book can hold fifty $10 tickets. New entries halt when daily realized plus unrealized drawdown exceeds `MAX_DAILY_DD_PCT` (default 25).
+
+`ENTRY_THRESHOLD` defaults to 64. On the seeded paper replay (`self_improving_agent.replay`), that cutoff resolves at least 30 trades and sells the 2x initial on at least 70% of them. Raise the threshold to take fewer, cleaner names.
 
 ## What it trades
 

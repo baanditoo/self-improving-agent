@@ -66,6 +66,8 @@ def render_hourly(
         f"# {stamp:%Y-%m-%d %H}:00 UTC",
         "",
         f"Mode: {settings.trading_mode()}",
+        f"Portfolio USD: {settings.paper_equity_usd:.2f}",
+        f"Max buy USD: {settings.max_buy_usd:.2f}",
         f"Equity USD: {equity_usd:.2f}",
         f"Open risk USD: {open_risk:.2f}",
         f"Day drawdown: {dd:.2f}%",
